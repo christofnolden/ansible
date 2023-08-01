@@ -1,0 +1,31 @@
+---
+- name: Notify the playbook status with a pushover message
+  hosts: all
+  gather_facts: false
+  become: yes
+  vars:
+    ansible_host_key_checking: false
+
+- name: Send Pushover-notification - successfull
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Pushover-Benachrichtung senden - Erfolgreich    
+      community.general.pushover:
+        app_token: TOKEN-HERE
+        user_key: KEY-HERE
+        title: "ansible-playbook"
+        msg: "apt Updates wurden erfolgreich durchgeführt."
+      when: ansible_failed_result is not defined
+
+- name: Send Pushover-notification - Fehler
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Pushover-Benachrichtigung senden - Fehler
+      community.general.pushover:
+        app_token: TOKEN-HERE
+        user_key: KEY-HERE
+        title: "ansible-playbook"
+        msg: "apt Updates hatten Fehler: {{ ansible_failed_result.msg }}"
+      when: ansible_failed_result is defined

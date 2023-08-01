@@ -1,0 +1,21 @@
+---
+- name: NTP Configuration
+  hosts: all
+  vars:
+    ansible_host_key_checking: false
+  become: true
+  tasks:
+    - name: Update NTP configuration
+      lineinfile:
+        path: /etc/ntpsec/ntp.conf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      with_items:
+        - { regexp: 'pool 0.debian.pool.ntp.org iburst', line: 'server 0.de.pool.ntp.org' }
+        - { regexp: 'pool 1.debian.pool.ntp.org iburst', line: 'server 1.de.pool.ntp.org' }
+        - { regexp: 'pool 2.debian.pool.ntp.org iburst', line: 'server 2.de.pool.ntp.org' }
+        - { regexp: 'pool 3.debian.pool.ntp.org iburst', line: 'server 2.de.pool.ntp.org' }
+    - name: Restart NTP service
+      service:
+        name: ntp
+        state: restarted

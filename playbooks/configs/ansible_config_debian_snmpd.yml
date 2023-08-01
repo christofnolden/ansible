@@ -1,0 +1,36 @@
+---
+- name: NTP Configuration
+  hosts: all
+  vars:
+    ansible_host_key_checking: false
+  become: true
+  tasks:
+    - name: agentaddress change
+      become: yes
+      replace:
+        path: /etc/snmp/snmpd.conf
+        regexp: 'agentaddress\s+127\.0\.0\.1,\[::1\]'
+        replace: 'agentaddress  udp:161'
+    - name: add community monitoring
+      become: yes
+      lineinfile:
+        path: /etc/snmp/snmpd.conf
+        line: "rocommunity COMMUNITYNAME SNMP-HOST-IP"
+        insertafter: "rocommunity6 public default -V systemonly"
+    - name: disable public community
+      become: yes
+      replace:
+        path: /etc/snmp/snmpd.conf
+        regexp: '^(rocommunity\s+public\s+default\s+-V\s+systemonly)$'
+        replace: '#\1'
+    - name: disable public community6
+      become: yes
+      replace:
+        path: /etc/snmp/snmpd.conf
+        regexp: '^(rocommunity6\s+public\s+default\s+-V\s+systemonly)$'
+        replace: '#\1'
+    - name: restart snmpd service
+      become: yes
+      service:
+        name: snmpd
+        state: restarted

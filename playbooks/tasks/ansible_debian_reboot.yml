@@ -8,6 +8,6 @@
   tasks:
     - name: reboot
       reboot:
-        reboot_timeout: 30
+        reboot_timeout: 120
         test_command: uptime
       ignore_errors: true

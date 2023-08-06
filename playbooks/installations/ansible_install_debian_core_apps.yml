@@ -13,6 +13,7 @@
         - sudo
         - ntp
         - snmp
+        - rsyslog
         - htop
         - bpytop
       update_cache: yes

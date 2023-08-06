@@ -48,6 +48,22 @@
         name: wazuh-agent
         enabled: yes
 
+    - name: add auth.log and kern.log to ossec.conf
+      blockinfile:
+        path: /var/ossec/etc/ossec.conf
+        insertafter: "^</ossec_config>"
+        content: |
+          <ossec_config>
+            <localfile>
+              <log_format>syslog</log_format>
+              <location>/var/log/auth.log</location>
+            </localfile>
+            <localfile>
+              <log_format>syslog</log_format>
+              <location>/var/log/kern.log</location>
+            </localfile>
+          </ossec_config>
+
     - name: Start wazuh-agent service
       systemd:
         name: wazuh-agent

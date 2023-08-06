@@ -1,0 +1,64 @@
+---
+- hosts: all
+  vars:
+    ansible_host_key_checking: false
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: Import Wazuh GPG key
+      command: sh -c 'curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/key>
+      register: gpg_output
+
+    - name: Set permissions for wazuh.gpg
+      file:
+        path: /usr/share/keyrings/wazuh.gpg
+        mode: '0644'
+      when: gpg_output.rc == 0
+
+    - name: Create Wazuh repository file
+      file:
+        path: /etc/apt/sources.list.d/wazuh.list
+        state: touch
+
+    - name: Add Wazuh repository line to sources.list.d
+      lineinfile:
+        path: /etc/apt/sources.list.d/wazuh.list
+        line: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main"
+        state: present
+
+    - name: Run apt-get update
+      apt:
+        update_cache: yes
+
+    - name: Install wazuh-agent using apt-get
+      apt:
+        name: wazuh-agent
+        state: present
+        update_cache: yes
+      environment:
+        WAZUH_MANAGER: "MANAGER-IP-HERE"
+
+    - name: Reload systemd daemons
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable wazuh-agent service
+      systemd:
+        name: wazuh-agent
+        enabled: yes
+
+    - name: Start wazuh-agent service
+      systemd:
+        name: wazuh-agent
+        state: started
+
+    - name: Comment out Wazuh repository in sources.list.d
+      replace:
+        path: /etc/apt/sources.list.d/wazuh.list
+        regexp: '^deb'
+        replace: '#deb'
+
+    - name: Run apt-get update
+      apt:
+        update_cache: yes

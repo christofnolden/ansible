@@ -7,7 +7,7 @@
 
   tasks:
     - name: Import Wazuh GPG key
-      command: sh -c 'curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/key>
+      command: "sh -c 'curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import'"
       register: gpg_output
 
     - name: Set permissions for wazuh.gpg
@@ -31,13 +31,10 @@
       apt:
         update_cache: yes
 
-    - name: Install wazuh-agent using apt-get
+    - name: install wazuh-agent
       apt:
         name: wazuh-agent
         state: present
-        update_cache: yes
-      environment:
-        WAZUH_MANAGER: "MANAGER-IP-HERE"
 
     - name: Reload systemd daemons
       systemd:
@@ -47,6 +44,30 @@
       systemd:
         name: wazuh-agent
         enabled: yes
+
+    - name: replace MANAGER_IP in ossec.conf
+      replace:
+        path: /var/ossec/etc/ossec.conf
+        regexp: '<address>MANAGER_IP</address>'
+        replace: '<address>XXX.XXX.XXX.XXX</address>'
+
+    - name: modify rootcheck comment in ossec.conf
+      replace:
+        path: /var/ossec/etc/ossec.conf
+        regexp: '<!-- Frequency that rootcheck is executed - every 12 hours -->'
+        replace: '<!-- Frequency that rootcheck is executed - every 6 hours -->'
+
+    - name: modify rootcheck and syscheck config in ossec.conf
+      replace:
+        path: /var/ossec/etc/ossec.conf
+        regexp: '<frequency>43200</frequency>'
+        replace: '<frequency>21600</frequency>'
+
+    - name: modify syscheck comment in ossec.conf
+      replace:
+        path: /var/ossec/etc/ossec.conf
+        regexp: '<!-- Frequency that syscheck is executed default every 12 hours -->'
+        replace: '<!-- Frequency that syscheck is executed default every 6 hours -->'
 
     - name: add auth.log and kern.log to ossec.conf
       blockinfile:

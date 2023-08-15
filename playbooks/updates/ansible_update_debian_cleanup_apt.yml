@@ -1,0 +1,15 @@
+---
+- hosts: all
+  gather_facts: yes
+  become: yes
+  vars:
+    ansible_host_key_checking: false
+
+  tasks:
+    - name: clean apt cache
+      apt: autoclean=yes
+      become: yes
+
+    - name: remove unused packages
+      apt: autoremove=yes
+      become: yes

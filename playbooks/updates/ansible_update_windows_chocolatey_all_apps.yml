@@ -1,0 +1,17 @@
+---
+- name: Update all packages with chocolatey
+  hosts: all
+  gather_facts: no
+  vars:
+    ansible_host_key_checking: false
+
+  tasks:
+    - name: Gather facts from Chocolatey CLI
+      win_chocolatey_facts:
+
+    - name: Upgrade installed packages
+      win_chocolatey:
+        name: '{{ item.package }}'
+        state: latest
+      failed_when: false # If one packet failes, choco moves on
+      loop: '{{ ansible_chocolatey.packages }}' # This variable comes from the facts task above automatically

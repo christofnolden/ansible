@@ -1,0 +1,28 @@
+---
+- name: Install all core apps with Chocolatey package manager on Windows
+  hosts: all
+  gather_facts: no
+  vars:
+    ansible_host_key_checking: false
+
+  tasks:
+    - name: Install Core Apps with Chocolatey
+      win_chocolatey:
+        name:
+          - 7zip
+          - bitwarden
+          - adobereader
+          - audacity
+          - blender
+          - gimp
+          - googleearthpro
+          - greenshot
+          - mRemoteNG
+          - notepadplusplus
+          - openjdk17
+          - powertoys
+          - pdf24
+          - vlc
+          - winmerge
+          - winscp
+        state: present

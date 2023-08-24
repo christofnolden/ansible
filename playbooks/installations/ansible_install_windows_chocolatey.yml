@@ -1,0 +1,40 @@
+---
+- name: Install Chocolatey package manager on Windows
+  hosts: all
+  gather_facts: no
+  vars:
+    ansible_host_key_checking: false
+
+  tasks:
+    - name: Create folder C:\system, if not existing
+      win_file:
+        path: C:\system
+        state: directory
+
+    - name: Create folder C:\system\ansible-temp, if not existing
+      win_file:
+        path: C:\system\ansible-temp
+        state: directory
+
+    - name: Download Chocolatey installer
+      win_get_url:
+        url: https://chocolatey.org/install.ps1
+        dest: C:\system\ansible-temp\install_choco.ps1
+      register: install_choco_created
+
+    - name: Run Chocolatey installer
+      win_shell: powershell.exe -ExecutionPolicy Bypass -File C:\system\ansible-temp\install_choco.ps1
+
+    - name: Verify Chocolatey installation
+      win_shell: choco --version
+      register: choco_version_output
+
+    - name: Display Chocolatey version
+      debug:
+        var: choco_version.stdout
+
+    - name: Delete C:\system\ansible-temp\install_choco.ps1
+      win_file:
+        path: C:\system\ansible-temp\install_choco.ps1
+        state: absent
+      when: install_choco_created

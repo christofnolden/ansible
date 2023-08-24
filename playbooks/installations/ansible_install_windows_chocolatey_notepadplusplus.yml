@@ -1,0 +1,12 @@
+---
+- name: Install Chocolatey package manager on Windows
+  hosts: all
+  gather_facts: no
+  vars:
+    ansible_host_key_checking: false
+
+  tasks:
+    - name: Install Notepad++ with Chocolatey
+      win_chocolatey:
+        name: notepadplusplus
+        state: present

@@ -38,3 +38,6 @@
         path: C:\system\ansible-temp\install_choco.ps1
         state: absent
       when: install_choco_created
+
+    - name: Enable Chocolatey allowGlobalConfirmation
+      win_shell: choco feature enable -n=allowGlobalConfirmation

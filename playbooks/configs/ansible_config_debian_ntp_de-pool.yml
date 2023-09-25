@@ -5,6 +5,14 @@
     ansible_host_key_checking: false
   become: true
   tasks:
+    - name: create folder /var/log/ntpsec
+      file:
+        path: /var/log/ntpsec
+        state: directory
+        owner: root
+        group: root
+        mode: '0777'
+      register: result_mkdir 
     - name: Update NTP configuration
       lineinfile:
         path: /etc/ntpsec/ntp.conf

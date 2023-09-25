@@ -19,7 +19,7 @@
         regexp: "{{ item.regexp }}"
         line: "{{ item.line }}"
       with_items:
-        - { regexp: 'pool 0.debian.pool.ntp.org iburst', line: 'server de.pool.ntp.org iburst' }
+        - { regexp: 'pool 0.debian.pool.ntp.org iburst', line: 'pool de.pool.ntp.org iburst' }
         - { regexp: 'pool 1.debian.pool.ntp.org iburst', line: '#pool 2.debian.pool.ntp.org iburst' }
         - { regexp: 'pool 2.debian.pool.ntp.org iburst', line: '#pool 3.debian.pool.ntp.org iburst' }
         - { regexp: 'pool 3.debian.pool.ntp.org iburst', line: '#pool 4.debian.pool.ntp.org iburst' }

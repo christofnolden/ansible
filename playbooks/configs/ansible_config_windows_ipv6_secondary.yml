@@ -1,11 +1,12 @@
 ---
-- name: gpupdate on windows hosts
+- name: set ipv6 to lower priority so ipv4 will be used
   hosts: all
   gather_facts: no
   vars:
     ansible_host_key_checking: false
 
-    - name: Set DisabledComponents Registry Value
+  tasks:
+    - name: Set DisabledComponents Registry Value to tcpip6
       win_regedit:
         path: "HKLM:\\System\\CurrentControlSet\\services\\Tcpip6\\Parameters"
         name: "DisabledComponents"

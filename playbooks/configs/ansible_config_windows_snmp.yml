@@ -1,1 +1,26 @@
+---
+- name: install snmp and configure it with community and allowed hosts
+  hosts: all
+  gather_facts: no
+  vars:
+    ansible_host_key_checking: false
 
+  tasks:
+    - name: SNMP service configuration
+      win_shell: |
+        # SNMP-community-string configuration for read-only
+        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SNMP\Parameters\PermittedManagers" -Name "10" -Value ####IP HERE####
+        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SNMP\Parameters\ValidCommunities" -Name "###COMMUNITY NAME HERE###" -Value 4
+
+        # SNMP-service restart
+        Restart-Service SNMP -Force
+      args:
+        executable: powershell.exe
+      become: yes
+      become_user: ansible  # privileged User
+
+  handlers:
+    - name: Restart SNMP Service
+      win_service:
+        name: SNMP
+        state: restarted

@@ -7,95 +7,58 @@
 
   tasks:
     - name: Import Wazuh GPG key
-      command: "sh -c 'curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import'"
-      register: gpg_output
+      ansible.builtin.apt_key:
+        url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+        keyring: /usr/share/keyrings/wazuh.gpg
+        state: present
+      register: wazuh_key
 
-    - name: Set permissions for wazuh.gpg
-      file:
+    - name: Set permissions on Wazuh GPG key
+      ansible.builtin.file:
         path: /usr/share/keyrings/wazuh.gpg
         mode: '0644'
-      when: gpg_output.rc == 0
+        owner: root
+        group: root
+      when: wazuh_key is changed
 
-    - name: Create Wazuh repository file
-      file:
-        path: /etc/apt/sources.list.d/wazuh.list
-        state: touch
-
-    - name: Add Wazuh repository line to sources.list.d
-      lineinfile:
-        path: /etc/apt/sources.list.d/wazuh.list
-        line: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main"
+    - name: Add Wazuh repository to sources list
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main"
+        filename: wazuh
         state: present
 
-    - name: Run apt-get update
-      apt:
+    - name: Update apt cache
+      ansible.builtin.apt:
         update_cache: yes
 
-    - name: install wazuh-agent
-      apt:
+    - name: Install Wazuh Agent
+      ansible.builtin.apt:
         name: wazuh-agent
         state: present
-
-    - name: Reload systemd daemons
-      systemd:
-        daemon_reload: yes
-
-    - name: Enable wazuh-agent service
-      systemd:
-        name: wazuh-agent
-        enabled: yes
 
     - name: replace MANAGER_IP in ossec.conf
       replace:
         path: /var/ossec/etc/ossec.conf
         regexp: '<address>MANAGER_IP</address>'
-        replace: '<address>XXX.XXX.XXX.XXX</address>'
+        replace: '<address>NEUE MANAGER IP</address>'
 
-    - name: modify rootcheck comment in ossec.conf
-      replace:
-        path: /var/ossec/etc/ossec.conf
-        regexp: '<!-- Frequency that rootcheck is executed - every 12 hours -->'
-        replace: '<!-- Frequency that rootcheck is executed - every 6 hours -->'
+    - name: Stop Wazuh Agent
+      ansible.builtin.systemd:
+        name: wazuh-agent
+        state: stopped
 
-    - name: modify rootcheck and syscheck config in ossec.conf
-      replace:
-        path: /var/ossec/etc/ossec.conf
-        regexp: '<frequency>43200</frequency>'
-        replace: '<frequency>21600</frequency>'
-
-    - name: modify syscheck comment in ossec.conf
-      replace:
-        path: /var/ossec/etc/ossec.conf
-        regexp: '<!-- Frequency that syscheck is executed default every 12 hours -->'
-        replace: '<!-- Frequency that syscheck is executed default every 6 hours -->'
-
-    - name: add auth.log and kern.log to ossec.conf
-      blockinfile:
-        path: /var/ossec/etc/ossec.conf
-        insertafter: "^</ossec_config>"
-        content: |
-          <ossec_config>
-            <localfile>
-              <log_format>syslog</log_format>
-              <location>/var/log/auth.log</location>
-            </localfile>
-            <localfile>
-              <log_format>syslog</log_format>
-              <location>/var/log/kern.log</location>
-            </localfile>
-          </ossec_config>
-
-    - name: Start wazuh-agent service
-      systemd:
+    - name: Start Wazuh Agent
+      ansible.builtin.systemd:
         name: wazuh-agent
         state: started
 
-    - name: Comment out Wazuh repository in sources.list.d
-      replace:
+    - name: Disable Wazuh repository after installation to not accidentially install faulty version
+      ansible.builtin.lineinfile:
         path: /etc/apt/sources.list.d/wazuh.list
         regexp: '^deb'
-        replace: '#deb'
+        line: '#deb'
+        state: present
 
-    - name: Run apt-get update
-      apt:
+    - name: Update apt cache after disabling repository
+      ansible.builtin.apt:
         update_cache: yes

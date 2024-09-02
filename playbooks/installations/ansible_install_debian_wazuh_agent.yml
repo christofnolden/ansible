@@ -47,6 +47,11 @@
         name: wazuh-agent
         state: stopped
 
+    - name: Enable wazuh-agent service
+      ansible.builtin.systemd:
+        name: wazuh-agent
+        enabled: yes
+
     - name: Start Wazuh Agent
       ansible.builtin.systemd:
         name: wazuh-agent

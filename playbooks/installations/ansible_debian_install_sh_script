@@ -1,0 +1,26 @@
+---
+- hosts: all
+  vars:
+    ansible_host_key_checking: false
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: Kopiere SophosSetup.sh auf den Zielhost
+      copy:
+        src: /srv/ansible/scripts/scriptname.sh
+        dest: /tmp/scriptname.sh
+        mode: '0755'  # Setzt die Datei als ausführbar
+
+    - name: SophosSetup.sh auf dem Zielhost ausführen
+      shell: /tmp/scriptname.sh
+      register: setup_output
+
+    - name: Ausgabe des Setup-Skripts anzeigen
+      debug:
+        var: setup_output.stdout
+
+    - name: Lösche scriptname.sh vom Zielhost
+      file:
+        path: /tmp/scriptname.sh
+        state: absent

@@ -52,5 +52,11 @@
         name: wazuh-agent
         state: latest
 
+    - name: Ensure wazuh-agent is enabled and running
+      ansible.builtin.service:
+        name: wazuh-agent
+        state: started
+        enabled: true
+
     - name: Hold wazuh-agent package
       ansible.builtin.shell: "echo 'wazuh-agent hold' | dpkg --set-selections"

@@ -45,7 +45,7 @@
       replace:
         path: /var/ossec/etc/ossec.conf
         regexp: '<address>MANAGER_IP</address>'
-        replace: '<address>NEUE MANAGER IP</address>'
+        replace: '<address>PLACEIPHERE</address>'
 
     - name: Stop Wazuh Agent
       ansible.builtin.systemd:
@@ -62,13 +62,9 @@
         name: wazuh-agent
         state: started
 
-    - name: Disable Wazuh repository after installation to not accidentially install faulty version
-      ansible.builtin.lineinfile:
-        path: /etc/apt/sources.list.d/wazuh.list
-        regexp: '^deb'
-        line: '#deb'
-        state: present
+    - name: Hold wazuh-agent package
+      ansible.builtin.shell: "echo 'wazuh-agent hold' | dpkg --set-selections"
 
-    - name: Update apt cache after disabling repository
+    - name: Update apt cache after hold on wazuh package
       ansible.builtin.apt:
         update_cache: yes

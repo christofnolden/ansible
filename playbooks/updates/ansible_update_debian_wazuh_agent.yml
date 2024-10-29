@@ -40,6 +40,9 @@
         state: present
         filename: wazuh
 
+    - name: Hold wazuh-agent package
+      ansible.builtin.shell: "echo 'wazuh-agent install' | dpkg --set-selections"
+
     - name: Update apt cache
       ansible.builtin.apt:
         update_cache: yes
@@ -49,9 +52,5 @@
         name: wazuh-agent
         state: latest
 
-    - name: Disable Wazuh repository after update
-      ansible.builtin.lineinfile:
-        path: /etc/apt/sources.list.d/wazuh.list
-        regexp: '^deb https://packages.wazuh.com/4.x/apt stable main'
-        line: '#deb https://packages.wazuh.com/4.x/apt stable main'
-        state: present
+    - name: Hold wazuh-agent package
+      ansible.builtin.shell: "echo 'wazuh-agent hold' | dpkg --set-selections"

@@ -40,7 +40,7 @@
         state: present
         filename: wazuh
 
-    - name: Hold wazuh-agent package
+    - name: uhold wazuh-agent package
       ansible.builtin.shell: "echo 'wazuh-agent install' | dpkg --set-selections"
 
     - name: Update apt cache

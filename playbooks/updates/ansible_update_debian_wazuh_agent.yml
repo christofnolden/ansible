@@ -30,9 +30,16 @@
         url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
         dest: /tmp/GPG-KEY-WAZUH
 
+    - name: Check if Wazuh GPG keyring already exists
+      ansible.builtin.stat:
+        path: /usr/share/keyrings/wazuh-archive-keyring.gpg
+      register: wazuh_keyring
+
     - name: Convert Wazuh GPG key to keyring format
-      ansible.builtin.command:
-        cmd: "gpg --dearmor -o /usr/share/keyrings/wazuh-archive-keyring.gpg /tmp/GPG-KEY-WAZUH"
+      ansible.builtin.command: "gpg --dearmor -o /usr/share/keyrings/wazuh-archive-keyring.gpg /tmp/GPG-KEY-WAZUH"
+      become: true
+      when: not wazuh_keyring.stat.exists
+      timeout: 30
 
     - name: Add Wazuh repository
       ansible.builtin.apt_repository:

@@ -1,0 +1,10 @@
+---
+- name: systemctl daemon-reload
+  hosts: all
+  vars:
+    ansible_host_key_checking: false
+  become: true
+  tasks:
+    - name: Reload systemd manager configuration
+      ansible.builtin.command:
+        cmd: systemctl daemon-reload

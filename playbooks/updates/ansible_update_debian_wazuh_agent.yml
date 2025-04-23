@@ -1,69 +1,110 @@
 ---
-- hosts: all
+- name: Wazuh-Agent aktualisieren und konfigurieren
+  hosts: all
   vars:
     ansible_host_key_checking: false
+    pushover_app_token: "TOKENHERE"
+    pushover_user_key: "USERKEYHERE"
   gather_facts: yes
   become: yes
 
   tasks:
+    - name: Wazuh Update block
+      block:
+        - name: Ensure gnupg is installed
+          ansible.builtin.apt:
+            name: gnupg
+            state: present
+            update_cache: yes
+            
+        - name: Ensure Wazuh repository is correctly configured
+          ansible.builtin.file:
+            path: /etc/apt/sources.list.d/wazuh.list
+            state: absent
 
-    - name: Ensure Wazuh repository is correctly configured
-      ansible.builtin.file:
-        path: /etc/apt/sources.list.d/wazuh.list
-        state: absent  # Löscht die alte Datei, um sicherzustellen, dass es keine Fehler gibt
+        - name: Create Wazuh repository file
+          ansible.builtin.lineinfile:
+            path: /etc/apt/sources.list.d/wazuh.list
+            line: 'deb [signed-by=/usr/share/keyrings/wazuh-archive-keyring.gpg] https://packages.wazuh.com/4.x/apt stable main'
+            create: yes
 
-    - name: Create Wazuh repository file
-      ansible.builtin.lineinfile:
-        path: /etc/apt/sources.list.d/wazuh.list
-        line: 'deb https://packages.wazuh.com/4.x/apt stable main'
-        create: yes
-    
-    - name: Activate Wazuh repository for updates
-      ansible.builtin.lineinfile:
-        path: /etc/apt/sources.list.d/wazuh.list
-        regexp: '^#deb https://packages.wazuh.com/4.x/apt stable main'
-        line: 'deb https://packages.wazuh.com/4.x/apt stable main'
-        state: present
+        - name: Download Wazuh GPG key
+          ansible.builtin.get_url:
+            url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+            dest: /tmp/GPG-KEY-WAZUH
 
-    - name: Download Wazuh GPG key
-      ansible.builtin.get_url:
-        url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
-        dest: /tmp/GPG-KEY-WAZUH
+        - name: Check if Wazuh GPG keyring already exists
+          ansible.builtin.stat:
+            path: /usr/share/keyrings/wazuh-archive-keyring.gpg
+          register: wazuh_keyring
 
-    - name: Check if Wazuh GPG keyring already exists
-      ansible.builtin.stat:
-        path: /usr/share/keyrings/wazuh-archive-keyring.gpg
-      register: wazuh_keyring
+        - name: Convert Wazuh GPG key to keyring format
+          ansible.builtin.command: "gpg --dearmor -o /usr/share/keyrings/wazuh-archive-keyring.gpg /tmp/GPG-KEY-WAZUH"
+          become: true
+          when: not wazuh_keyring.stat.exists
+          timeout: 30
+          register: wazuh_keyring_conversion
 
-    - name: Convert Wazuh GPG key to keyring format
-      ansible.builtin.command: "gpg --dearmor -o /usr/share/keyrings/wazuh-archive-keyring.gpg /tmp/GPG-KEY-WAZUH"
-      become: true
-      when: not wazuh_keyring.stat.exists
-      timeout: 30
+        - name: uhold wazuh-agent package
+          ansible.builtin.shell: "echo 'wazuh-agent install' | dpkg --set-selections"
 
-    - name: Add Wazuh repository
-      ansible.builtin.apt_repository:
-        repo: 'deb [signed-by=/usr/share/keyrings/wazuh-archive-keyring.gpg] https://packages.wazuh.com/4.x/apt stable main'
-        state: present
-        filename: wazuh
+        - name: Update apt cache
+          ansible.builtin.apt:
+            update_cache: yes
 
-    - name: uhold wazuh-agent package
-      ansible.builtin.shell: "echo 'wazuh-agent install' | dpkg --set-selections"
+        - name: Upgrade Wazuh agent package
+          ansible.builtin.apt:
+            name: wazuh-agent
+            state: latest
+          register: wazuh_upgrade_result
 
-    - name: Update apt cache
-      ansible.builtin.apt:
-        update_cache: yes
+        - name: Ensure wazuh-agent is enabled and running
+          ansible.builtin.service:
+            name: wazuh-agent
+            state: started
+            enabled: true
+          register: wazuh_service_status
 
-    - name: Upgrade Wazuh agent package
-      ansible.builtin.apt:
-        name: wazuh-agent
-        state: latest
+        - name: Hold wazuh-agent package
+          ansible.builtin.shell: "echo 'wazuh-agent hold' | dpkg --set-selections"
 
-    - name: Ensure wazuh-agent is enabled and running
-      ansible.builtin.service:
-        name: wazuh-agent
-        state: started
-        enabled: true
+        - name: Set Success Flag
+          set_fact:
+            playbook_failed: false
 
-    - name: Hold wazuh-agent package
-      ansible.builtin.shell: "echo 'wazuh-agent hold' | dpkg --set-selections"
+      rescue:
+        - name: Fehler merken
+          set_fact:
+            playbook_failed: true
+            error_message: "{{ ansible_failed_result.msg | default('Unbekannter Fehler') }}"
+
+    - name: Pushover Nachricht – Erfolg
+      when: not playbook_failed
+      delegate_to: localhost
+      become: false
+      community.general.pushover:
+        app_token: "{{ pushover_app_token }}"
+        user_key: "{{ pushover_user_key }}"
+        title: "✅ Wazuh-Agent aktualisiert"
+        msg: |
+          Host: {{ inventory_hostname }}
+
+          🗝️ GPG-Key aktualisiert: {{ (wazuh_keyring_conversion.changed | default(false)) }}
+
+          🔄 Agent-Upgrade:
+          Geändert: {{ wazuh_upgrade_result.changed }}
+
+          🟢 wazuh-agent läuft: {{ wazuh_service_status.status.ActiveState | default('unbekannt') }}
+
+    - name: Pushover Nachricht – Fehler
+      when: playbook_failed
+      delegate_to: localhost
+      become: false
+      community.general.pushover:
+        app_token: "{{ pushover_app_token }}"
+        user_key: "{{ pushover_user_key }}"
+        title: "❌ Wazuh-Agent Fehler"
+        msg: |
+          Host: {{ inventory_hostname }}
+          Fehler bei der Aktualisierung!
+          Fehler: {{ error_message }}

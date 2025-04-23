@@ -1,3 +1,4 @@
+# Replace manager ip in line 56
 ---
 - hosts: all
   vars:
@@ -20,15 +21,8 @@
     - name: Create Wazuh repository file
       ansible.builtin.lineinfile:
         path: /etc/apt/sources.list.d/wazuh.list
-        line: 'deb https://packages.wazuh.com/4.x/apt stable main'
+        line: 'deb [signed-by=/usr/share/keyrings/wazuh-archive-keyring.gpg] https://packages.wazuh.com/4.x/apt stable main'
         create: yes
-    
-    - name: Activate Wazuh repository for updates
-      ansible.builtin.lineinfile:
-        path: /etc/apt/sources.list.d/wazuh.list
-        regexp: '^#deb https://packages.wazuh.com/4.x/apt stable main'
-        line: 'deb https://packages.wazuh.com/4.x/apt stable main'
-        state: present
 
     - name: Download Wazuh GPG key
       ansible.builtin.get_url:
@@ -46,12 +40,6 @@
       when: not wazuh_keyring.stat.exists
       timeout: 30
 
-    - name: Add Wazuh repository
-      ansible.builtin.apt_repository:
-        repo: 'deb [signed-by=/usr/share/keyrings/wazuh-archive-keyring.gpg] https://packages.wazuh.com/4.x/apt stable main'
-        state: present
-        filename: wazuh
-
     - name: Update apt cache
       ansible.builtin.apt:
         update_cache: yes
@@ -65,7 +53,7 @@
       replace:
         path: /var/ossec/etc/ossec.conf
         regexp: '<address>MANAGER_IP</address>'
-        replace: '<address>PUTIPHERE</address>'
+        replace: '<address>MANAGER_IPHERE</address>'
 
     - name: Stop Wazuh Agent
       ansible.builtin.systemd:

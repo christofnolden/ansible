@@ -46,7 +46,7 @@
 
     - name: Install Wazuh Agent
       ansible.builtin.apt:
-        name: wazuh-agent
+        name: wazuh-agent=4.11.2-1
         state: present
 
     - name: replace MANAGER_IP in ossec.conf

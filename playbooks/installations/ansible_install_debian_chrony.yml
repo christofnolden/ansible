@@ -1,0 +1,47 @@
+---
+- name: NTP Configuration
+  hosts: all
+  vars:
+    ansible_host_key_checking: false
+  become: true
+  tasks:
+    - name: Remove ntp/ntpsec if present
+      apt:
+        name:
+          - ntp
+          - ntpsec
+        state: absent
+        purge: yes
+        autoremove: yes
+
+    - name: Install chrony
+      apt:
+        name: chrony
+        state: present
+        update_cache: yes
+
+    - name: Comment out existing Debian pool lines
+      lineinfile:
+        path: /etc/chrony/chrony.conf
+        regexp: '^pool .*debian\.pool\.ntp\.org'
+        line: '# \g<0>'
+        backrefs: yes
+
+    - name: Add de.pool.ntp.org line if not present
+      lineinfile:
+        path: /etc/chrony/chrony.conf
+        line: 'pool de.pool.ntp.org iburst'
+        insertafter: '^#.*debian\.pool\.ntp\.org'   # Nach den auskommentierten Pools
+        state: present
+
+    - name: Ensure chrony is enabled and started
+      systemd:
+        name: chrony
+        enabled: yes
+        state: started
+
+  handlers:
+    - name: Restart chrony
+      systemd:
+        name: chrony
+        state: restarted
